@@ -70,4 +70,12 @@ public class GameManager : MonoBehaviour
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
     }
+
+    // Méthode appelée lors de la destruction de l'objet
+    private void OnDestroy()
+    {
+        // Nettoyer les références pour éviter des fuites mémoire
+        timerText = null;
+        enemies = null;
+    }
 }

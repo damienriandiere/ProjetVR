@@ -17,4 +17,11 @@ public class FollowCamera : MonoBehaviour
         // Faire en sorte que la caméra regarde toujours le joueur
         transform.LookAt(player);
     }
+
+    // Méthode appelée lors de la destruction de l'objet
+    private void OnDestroy()
+    {
+        // Réinitialiser les références pour éviter des fuites mémoire
+        player = null;
+    }
 }

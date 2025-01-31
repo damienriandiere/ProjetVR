@@ -32,7 +32,8 @@ public class Enemy : MonoBehaviour
             healthBarCanvas.LookAt(Camera.main.transform);
         }
     }
-    void OnCollisionEnter(Collision collision)
+
+    public void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Bullet"))
         {
@@ -40,7 +41,6 @@ public class Enemy : MonoBehaviour
             Destroy(collision.gameObject);
         }
     }
-
 
     public void TakeDamage(float damage)
     {
@@ -72,5 +72,13 @@ public class Enemy : MonoBehaviour
         // Détruit l’ennemi après l'animation
         Destroy(gameObject, 3f); // Laisse le temps à l'animation de jouer
     }
-   
+
+    // Méthode appelée lors de la destruction de l'objet
+    private void OnDestroy()
+    {
+        // Nettoyer les références pour éviter des fuites mémoire
+        healthBarFill = null;
+        healthBarCanvas = null;
+        anim = null;
+    }
 }

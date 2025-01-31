@@ -1,15 +1,14 @@
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
 
 public class WeaponController : MonoBehaviour
 {
-
     // Références pour le tir
     public GameObject bulletPrefab;
     public Transform gunMuzzle;
     public float shootingForce = 20f;
     public AudioSource audioSource;
     public AudioClip shootingSound;
+
     public void FireWeapon()
     {
         // Vérifier si le prefab et le muzzle sont définis
@@ -31,5 +30,15 @@ public class WeaponController : MonoBehaviour
                 audioSource.PlayOneShot(shootingSound);
             }
         }
+    }
+
+    // Méthode appelée lors de la destruction de l'objet
+    private void OnDestroy()
+    {
+        // Réinitialiser les références pour éviter les fuites mémoire
+        bulletPrefab = null;
+        gunMuzzle = null;
+        audioSource = null;
+        shootingSound = null;
     }
 }

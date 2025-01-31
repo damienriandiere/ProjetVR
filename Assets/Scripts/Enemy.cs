@@ -11,9 +11,17 @@ public class Enemy : MonoBehaviour
     public Image healthBarFill; // Glisser l'image "Fill" ici
     public Transform healthBarCanvas; // Glisser le Canvas ici
 
+    private Animator anim; // Référence à l'Animator
+    private bool isDead = false; // Vérifie si l'ennemi est déjà mort
+
     private void Start()
     {
         currentHealth = maxHealth;
+        anim = GetComponent<Animator>();
+        if (anim == null)
+        {
+            Debug.LogError("Animator non trouvé sur " + gameObject.name);
+        }
     }
 
     private void Update()
@@ -24,6 +32,15 @@ public class Enemy : MonoBehaviour
             healthBarCanvas.LookAt(Camera.main.transform);
         }
     }
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Bullet"))
+        {
+            TakeDamage(20);
+            Destroy(collision.gameObject);
+        }
+    }
+
 
     public void TakeDamage(float damage)
     {
@@ -45,7 +62,15 @@ public class Enemy : MonoBehaviour
 
     private void Die()
     {
-        Destroy(gameObject); // Détruit l'ennemi
-        FindObjectOfType<GameManager>().EndGame();
+        isDead = true; // L'ennemi est mort
+        anim.SetBool("isDead", isDead); // Déclenche l'animation de mort
+        Debug.Log(anim.GetBool("isDead"));
+
+        GetComponent<Collider>().enabled = false; // Désactive les collisions
+        GetComponent<Rigidbody>().isKinematic = true; // Évite les réactions physiques
+
+        // Détruit l’ennemi après l'animation
+        Destroy(gameObject, 3f); // Laisse le temps à l'animation de jouer
     }
+   
 }

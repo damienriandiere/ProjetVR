@@ -1,69 +1,162 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    public float gameTime = 60f; // Durée du jeu en secondes
+    public float gameTime = 60f; // Durï¿½e du jeu en secondes
     private float timeRemaining;
     private bool gameEnded = false;
+    private bool isPaused = false;
 
-    public TextMeshProUGUI timerText; // Référence au texte affichant le temps
+    public Slider timeProgressBar; // Rï¿½fï¿½rence au Slider pour la barre de progression
+    public TextMeshProUGUI progressText; // Rï¿½fï¿½rence au texte affichant le pourcentage
     public Enemy[] enemies; // Tableau des ennemis
+
+    public GameObject pauseMenuCanvas; // Rï¿½fï¿½rence au Canvas du menu de pause
+    public TextMeshProUGUI helpText; // Rï¿½fï¿½rence au texte d'aide
+
+    public Button resumeButton; // Rï¿½fï¿½rence au bouton Resume
+    public Button helpButton; // Rï¿½fï¿½rence au bouton Help
+    public Button quitButton; // Rï¿½fï¿½rence au bouton Quit
+    public GameObject helpPanel; // Rï¿½fï¿½rence au Panel du menu d'aide
+    public Button backButton; // Rï¿½fï¿½rence au bouton Retour
 
     void Start()
     {
         timeRemaining = gameTime;
+        timeProgressBar.maxValue = gameTime;
+        timeProgressBar.value = gameTime;
+
+        // Dï¿½sactiver le menu de pause au dï¿½marrage
+        if (pauseMenuCanvas != null)
+        {
+            pauseMenuCanvas.SetActive(false);
+        }
+
+        // Dï¿½sactiver le menu d'aide au dï¿½marrage
+        if (helpPanel != null)
+        {
+            helpPanel.SetActive(false);
+        }
+
+        // Configurer les boutons
+        if (resumeButton != null)
+        {
+            resumeButton.onClick.AddListener(ResumeGame);
+        }
+
+        if (helpButton != null)
+        {
+            helpButton.onClick.AddListener(ShowHelp);
+        }
+
+        if (quitButton != null)
+        {
+            quitButton.onClick.AddListener(QuitGame);
+        }
+
+        // Configurer le bouton Retour
+        if (backButton != null)
+        {
+            backButton.onClick.AddListener(HideHelp);
+        }
     }
 
     void Update()
     {
-        if (gameEnded) return; // Ne plus mettre à jour après la fin du jeu
+        if (gameEnded) return; // Ne plus mettre ï¿½ jour aprï¿½s la fin du jeu
 
-        timeRemaining -= Time.deltaTime;
-        UpdateTimerUI();
-
-        if (timeRemaining <= 0)
+        // Gï¿½rer la pause avec la touche Escape
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            timerText.text = "Temps écoulé !";
-            EndGame();
+            TogglePause();
+        }
+
+        // Mettre ï¿½ jour le temps restant si le jeu n'est pas en pause
+        if (!isPaused)
+        {
+            timeRemaining -= Time.deltaTime;
+            UpdateTimerUI();
+
+            if (timeRemaining <= 0)
+            {
+                progressText.text = "0%";
+                EndGame();
+            }
         }
     }
 
     void UpdateTimerUI()
     {
-        timerText.text = "Temps restant: " + Mathf.Ceil(timeRemaining) + "s";
+        // Mettre ï¿½ jour la valeur du Slider
+        timeProgressBar.value = timeRemaining;
+
+        // Calculer le pourcentage de temps restant
+        float percentage = (timeRemaining / gameTime) * 100f;
+        progressText.text = Mathf.CeilToInt(percentage) + "%";
     }
 
     public void EndGame()
     {
         gameEnded = true;
+        Debug.Log("Fin du jeu !");
+    }
 
-        // Vérifier si tous les ennemis sont morts
-        bool allEnemiesDead = true;
-        foreach (Enemy enemy in enemies)
-        {
-            if (enemy != null) // Si un ennemi existe encore, il n'est pas mort
-            {
-                allEnemiesDead = false;
-                break;
-            }
-        }
+    // Fonction pour activer/dï¿½sactiver la pause
+    public void TogglePause()
+    {
+        isPaused = !isPaused;
 
-        if (allEnemiesDead)
+        if (isPaused)
         {
-            Debug.Log("Vous avez gagné !");
+            // Activer le menu de pause
+            pauseMenuCanvas.SetActive(true);
+            // Arrï¿½ter le temps
+            Time.timeScale = 0f;
         }
         else
         {
-            Debug.Log("Vous avez perdu !");
+            // Dï¿½sactiver le menu de pause
+            pauseMenuCanvas.SetActive(false);
+            // Dï¿½sactiver le texte d'aide
+            helpText.gameObject.SetActive(false);
+            // Reprendre le temps
+            Time.timeScale = 1f;
         }
-
-        // Quitter le jeu après 3 secondes
-        Invoke("QuitGame", 3f);
     }
 
-    void QuitGame()
+    // Fonction pour reprendre le jeu
+    public void ResumeGame()
     {
+        TogglePause(); // Dï¿½sactive la pause
+    }
+
+    // Fonction pour afficher l'aide
+    public void ShowHelp()
+    {
+        // Activer le menu d'aide
+        if (helpPanel != null)
+        {
+            helpPanel.SetActive(true);
+
+        }
+    }
+
+    // Fonction pour masquer l'aide et revenir au menu de pause
+    public void HideHelp()
+    {
+        // Dï¿½sactiver le menu d'aide
+        if (helpPanel != null)
+        {
+            helpPanel.SetActive(false);
+        }
+    }
+
+    // Fonction pour quitter le jeu
+    public void QuitGame()
+    {
+        Debug.Log("Quitter le jeu...");
         Application.Quit();
 
 #if UNITY_EDITOR
@@ -71,10 +164,10 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
-    // Méthode appelée lors de la destruction de l'objet
+    // Mï¿½thode appelï¿½e lors de la destruction de l'objet
     private void OnDestroy()
     {
-        // Nettoyer les références pour éviter des fuites mémoire
+        // Nettoyer les rï¿½fï¿½rences pour ï¿½viter des fuites mï¿½moire
         timerText = null;
         enemies = null;
     }

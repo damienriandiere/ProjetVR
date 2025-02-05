@@ -69,6 +69,14 @@ public class Enemy : MonoBehaviour
         GetComponent<Collider>().enabled = false; // Désactive les collisions
         GetComponent<Rigidbody>().isKinematic = true; // Évite les réactions physiques
 
+
+        // Informer le GameManager
+        GameManager gameManager = FindObjectOfType<GameManager>();
+        if (gameManager != null)
+        {
+            gameManager.CheckVictoryCondition();
+        }
+
         // Détruit l’ennemi après l'animation
         Destroy(gameObject, 3f); // Laisse le temps à l'animation de jouer
     }

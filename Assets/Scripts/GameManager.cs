@@ -1,26 +1,45 @@
 using UnityEngine;
-using TMPro;
 using UnityEngine.UI;
+using TMPro;
+using UnityEngine.XR;
+using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    public float gameTime = 60f; // Dur�e du jeu en secondes
+    public float gameTime = 60f; // Durée du jeu en secondes
     private float timeRemaining;
     private bool gameEnded = false;
     private bool isPaused = false;
 
-    public Slider timeProgressBar; // R�f�rence au Slider pour la barre de progression
-    public TextMeshProUGUI progressText; // R�f�rence au texte affichant le pourcentage
-    public Enemy[] enemies; // Tableau des ennemis
+    [Header("UI Elements")]
+    public Slider timeProgressBar;
+    public TextMeshProUGUI progressText;
+    public GameObject pauseMenuCanvas;
+    public TextMeshProUGUI helpText;
+    public GameObject helpPanel;
 
-    public GameObject pauseMenuCanvas; // R�f�rence au Canvas du menu de pause
-    public TextMeshProUGUI helpText; // R�f�rence au texte d'aide
+    [Header("End Screens")]
+    public GameObject defeatPanel;
+    public GameObject victoryPanel;
+    public Button restartButton;
+    public Button quitButton;
+    public Button restartButtonVictory;
+    public Button quitButtonVictory;
 
-    public Button resumeButton; // R�f�rence au bouton Resume
-    public Button helpButton; // R�f�rence au bouton Help
-    public Button quitButton; // R�f�rence au bouton Quit
-    public GameObject helpPanel; // R�f�rence au Panel du menu d'aide
-    public Button backButton; // R�f�rence au bouton Retour
+    [Header("Buttons")]
+    public Button resumeButton;
+    public Button helpButton;
+    public Button quitGameButton;
+    public Button backButton;
+
+    public AudioSource menuAudioSource;
+
+    [Header("Game Elements")]
+    public List<Enemy> enemies = new List<Enemy>(); // Liste des ennemis actifs
+
+    [Header("Audio")]
+    public AudioSource alloSelemAudio; // 🔊 Fichier "Allo Selem"
 
     void Start()
     {
@@ -28,52 +47,51 @@ public class GameManager : MonoBehaviour
         timeProgressBar.maxValue = gameTime;
         timeProgressBar.value = gameTime;
 
-        // D�sactiver le menu de pause au d�marrage
-        if (pauseMenuCanvas != null)
-        {
-            pauseMenuCanvas.SetActive(false);
-        }
-
-        // D�sactiver le menu d'aide au d�marrage
-        if (helpPanel != null)
-        {
-            helpPanel.SetActive(false);
-        }
+        // Désactiver les menus au démarrage
+        pauseMenuCanvas?.SetActive(false);
+        helpPanel?.SetActive(false);
+        defeatPanel?.SetActive(false);
+        victoryPanel?.SetActive(false); // ✅ Ajout du menu de victoire
 
         // Configurer les boutons
         if (resumeButton != null)
-        {
-            resumeButton.onClick.AddListener(ResumeGame);
-        }
+            resumeButton.onClick.AddListener(() => { PlayMenuSound(); ResumeGame(); });
 
         if (helpButton != null)
-        {
-            helpButton.onClick.AddListener(ShowHelp);
-        }
+            helpButton.onClick.AddListener(() => { PlayMenuSound(); ShowHelp(); });
+
+        if (quitGameButton != null)
+            quitGameButton.onClick.AddListener(() => { PlayMenuSound(); QuitGame(); });
+
+        if (backButton != null)
+            backButton.onClick.AddListener(() => { PlayMenuSound(); HideHelp(); });
+
+        if (restartButton != null)
+            restartButton.onClick.AddListener(() => { PlayMenuSound(); RestartGame(); });
 
         if (quitButton != null)
-        {
-            quitButton.onClick.AddListener(QuitGame);
-        }
+            quitButton.onClick.AddListener(() => { PlayMenuSound(); QuitGame(); });
 
-        // Configurer le bouton Retour
-        if (backButton != null)
-        {
-            backButton.onClick.AddListener(HideHelp);
-        }
+        if (restartButtonVictory != null)
+            restartButtonVictory.onClick.AddListener(() => { PlayMenuSound(); RestartGame(); });
+
+        if (quitButtonVictory != null)
+            quitButtonVictory.onClick.AddListener(() => { PlayMenuSound(); QuitGame(); });
+
+        // Charger les ennemis dans la liste
+        UpdateEnemyList();
     }
 
     void Update()
     {
-        if (gameEnded) return; // Ne plus mettre � jour apr�s la fin du jeu
+        if (gameEnded) return;
 
-        // G�rer la pause avec la touche Escape
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetKeyDown(KeyCode.Escape) || IsVRPauseButtonPressed())
         {
+            PlayMenuSound();
             TogglePause();
         }
 
-        // Mettre � jour le temps restant si le jeu n'est pas en pause
         if (!isPaused)
         {
             timeRemaining -= Time.deltaTime;
@@ -81,79 +99,97 @@ public class GameManager : MonoBehaviour
 
             if (timeRemaining <= 0)
             {
-                progressText.text = "0%";
-                EndGame();
+                timeRemaining = 0;
+                EndGame(false); // Défaite par manque de temps
             }
         }
+
+        // Vérifier si tous les ennemis sont morts
+        CheckVictoryCondition();
     }
 
     void UpdateTimerUI()
     {
-        // Mettre � jour la valeur du Slider
         timeProgressBar.value = timeRemaining;
-
-        // Calculer le pourcentage de temps restant
         float percentage = (timeRemaining / gameTime) * 100f;
         progressText.text = Mathf.CeilToInt(percentage) + "%";
     }
 
-    public void EndGame()
+    public void EndGame(bool victory)
     {
         gameEnded = true;
-        Debug.Log("Fin du jeu !");
-    }
+        Time.timeScale = 0f; // Arrêter le temps
 
-    // Fonction pour activer/d�sactiver la pause
-    public void TogglePause()
-    {
-        isPaused = !isPaused;
-
-        if (isPaused)
+        if (victory)
         {
-            // Activer le menu de pause
-            pauseMenuCanvas.SetActive(true);
-            // Arr�ter le temps
-            Time.timeScale = 0f;
+            victoryPanel?.SetActive(true); // Afficher l’écran de victoire
         }
         else
         {
-            // D�sactiver le menu de pause
-            pauseMenuCanvas.SetActive(false);
-            // D�sactiver le texte d'aide
-            helpText.gameObject.SetActive(false);
-            // Reprendre le temps
-            Time.timeScale = 1f;
+            defeatPanel?.SetActive(true); // Afficher l’écran de défaite
+            PauseAllAudioSources(); // Mettre en pause tous les sons
+            PlayAlloSelem(); // 🔊 Jouer le son "Allo Selem"
         }
     }
 
-    // Fonction pour reprendre le jeu
+    private void RestartGame()
+    {
+        Time.timeScale = 1f; // Remettre le temps normal
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    void PlayMenuSound()
+    {
+        if (menuAudioSource != null && menuAudioSource.clip != null)
+        {
+            menuAudioSource.Play();
+        }
+    }
+
+    private void PlayAlloSelem()
+    {
+        if (alloSelemAudio != null)
+        {
+            alloSelemAudio.Play();
+        }
+    }
+
+    private void PauseAllAudioSources()
+    {
+        AudioSource[] allAudioSources = FindObjectsOfType<AudioSource>();
+
+        foreach (AudioSource audio in allAudioSources)
+        {
+            if (audio != alloSelemAudio) // Ne pas stopper "Allo Selem"
+            {
+                audio.Pause();
+            }
+        }
+    }
+    public void TogglePause()
+    {
+        isPaused = !isPaused;
+        pauseMenuCanvas?.SetActive(isPaused);
+        Time.timeScale = isPaused ? 0f : 1f;
+    }
+
     public void ResumeGame()
     {
-        TogglePause(); // D�sactive la pause
+        TogglePause();
     }
 
-    // Fonction pour afficher l'aide
     public void ShowHelp()
     {
-        // Activer le menu d'aide
-        if (helpPanel != null)
-        {
-            helpPanel.SetActive(true);
-
-        }
+        helpPanel?.SetActive(true);
+        if (helpText != null)
+            helpText.gameObject.SetActive(true);
     }
 
-    // Fonction pour masquer l'aide et revenir au menu de pause
     public void HideHelp()
     {
-        // D�sactiver le menu d'aide
-        if (helpPanel != null)
-        {
-            helpPanel.SetActive(false);
-        }
+        helpPanel?.SetActive(false);
     }
 
-    // Fonction pour quitter le jeu
     public void QuitGame()
     {
         Debug.Log("Quitter le jeu...");
@@ -164,11 +200,52 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
-    // M�thode appel�e lors de la destruction de l'objet
+    private bool IsVRPauseButtonPressed()
+    {
+        List<InputDevice> devices = new List<InputDevice>();
+        InputDevices.GetDevicesWithRole(InputDeviceRole.LeftHanded, devices);
+        InputDevices.GetDevicesWithRole(InputDeviceRole.RightHanded, devices);
+
+        foreach (var device in devices)
+        {
+            if (device.TryGetFeatureValue(CommonUsages.menuButton, out bool isPressed) && isPressed)
+            {
+                return true;
+            }
+        }
+
+        return Input.GetKeyDown(KeyCode.F1);
+    }
+
+    private void UpdateEnemyList()
+    {
+        enemies = new List<Enemy>(FindObjectsOfType<Enemy>());
+    }
+
+    public void CheckVictoryCondition()
+    {
+        enemies.RemoveAll(enemy => enemy == null); // Nettoyer la liste
+        if (enemies.Count == 0 && !gameEnded)
+        {
+            EndGame(true); // ✅ Victoire quand tous les ennemis sont morts
+        }
+    }
+
     private void OnDestroy()
     {
-        // Nettoyer les r�f�rences pour �viter des fuites m�moire
-        timerText = null;
+        timeProgressBar = null;
+        progressText = null;
+        pauseMenuCanvas = null;
+        helpText = null;
+        resumeButton = null;
+        helpButton = null;
+        quitGameButton = null;
+        helpPanel = null;
+        backButton = null;
+        defeatPanel = null;
+        victoryPanel = null;
+        restartButton = null;
+        quitButton = null;
         enemies = null;
     }
 }

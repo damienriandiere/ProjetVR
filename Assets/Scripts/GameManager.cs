@@ -37,6 +37,11 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Elements")]
     public List<Enemy> enemies = new List<Enemy>(); // Liste des ennemis actifs
+    public Image enemyImageUI; // Image de l'ennemi dans l'UI
+    public TextMeshProUGUI enemyCountText; // Texte pour afficher le nombre d'ennemis restants
+
+    private int totalEnemiesInScene;
+
 
     [Header("Audio")]
     public AudioSource alloSelemAudio; // 🔊 Fichier "Allo Selem"
@@ -78,8 +83,9 @@ public class GameManager : MonoBehaviour
         if (quitButtonVictory != null)
             quitButtonVictory.onClick.AddListener(() => { PlayMenuSound(); QuitGame(); });
 
-        // Charger les ennemis dans la liste
+        // Charger les ennemis dans la liste et obtenir le total
         UpdateEnemyList();
+        totalEnemiesInScene = enemies.Count; // Nombre total d'ennemis au lancement
     }
 
     void Update()
@@ -106,6 +112,7 @@ public class GameManager : MonoBehaviour
 
         // Vérifier si tous les ennemis sont morts
         CheckVictoryCondition();
+        UpdateEnemyUI(); // Mise à jour de l'UI des ennemis
     }
 
     void UpdateTimerUI()
@@ -115,6 +122,20 @@ public class GameManager : MonoBehaviour
         progressText.text = Mathf.CeilToInt(percentage) + "%";
     }
 
+    private void UpdateEnemyUI()
+    {
+        if (enemyImageUI != null && enemies.Count > 0)
+        {
+            // Met à jour l'image de l'ennemi
+            enemyImageUI.enabled = true;
+        }
+
+        if (enemyCountText != null)
+        {
+            // Affiche le nombre d'ennemis restants sur le total initial
+            enemyCountText.text = $"{enemies.Count} / {totalEnemiesInScene}"; // Nombre d'ennemis restants / total
+        }
+    }
     public void EndGame(bool victory)
     {
         gameEnded = true;
@@ -247,5 +268,6 @@ public class GameManager : MonoBehaviour
         restartButton = null;
         quitButton = null;
         enemies = null;
+        enemyCountText = null;
     }
 }

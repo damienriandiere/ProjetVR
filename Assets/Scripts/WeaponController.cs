@@ -13,14 +13,15 @@ public class WeaponController : MonoBehaviour
 
     // Hitmarker UI
     public Image hitmarkerUI;
-    public float hitmarkerDuration = 0.2f; // Temps d'affichage du hitmarker
 
-    private void Update()
+    private void Start()
     {
-        // Vérifier si on vise un ennemi
-        CheckForEnemy();
+        // Afficher immédiatement le hitmarker au démarrage du jeu
+        if (hitmarkerUI != null)
+        {
+            hitmarkerUI.enabled = true;
+        }
     }
-
     public void FireWeapon()
     {
         // Vérifier si le prefab et le muzzle sont définis
@@ -41,38 +42,6 @@ public class WeaponController : MonoBehaviour
             {
                 audioSource.PlayOneShot(shootingSound);
             }
-        }
-    }
-
-    private void CheckForEnemy()
-    {
-        RaycastHit hit;
-        if (Physics.Raycast(gunMuzzle.position, gunMuzzle.forward, out hit, 100f))
-        {
-            Enemy enemy = hit.collider.GetComponent<Enemy>();
-            if (enemy != null)
-            {
-                ShowHitmarker();
-            }
-        }
-    }
-
-    private void ShowHitmarker()
-    {
-        if (hitmarkerUI != null)
-        {
-            hitmarkerUI.enabled = true;
-            StopAllCoroutines();
-            StartCoroutine(HideHitmarker());
-        }
-    }
-
-    private IEnumerator HideHitmarker()
-    {
-        yield return new WaitForSeconds(hitmarkerDuration);
-        if (hitmarkerUI != null)
-        {
-            hitmarkerUI.enabled = false;
         }
     }
 

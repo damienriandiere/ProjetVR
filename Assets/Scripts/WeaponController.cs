@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
 
 public class WeaponController : MonoBehaviour
 {
@@ -9,6 +11,17 @@ public class WeaponController : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip shootingSound;
 
+    // Hitmarker UI
+    public Image hitmarkerUI;
+
+    private void Start()
+    {
+        // Afficher immédiatement le hitmarker au démarrage du jeu
+        if (hitmarkerUI != null)
+        {
+            hitmarkerUI.enabled = true;
+        }
+    }
     public void FireWeapon()
     {
         // Vérifier si le prefab et le muzzle sont définis
@@ -35,10 +48,10 @@ public class WeaponController : MonoBehaviour
     // Méthode appelée lors de la destruction de l'objet
     private void OnDestroy()
     {
-        // Réinitialiser les références pour éviter les fuites mémoire
         bulletPrefab = null;
         gunMuzzle = null;
         audioSource = null;
         shootingSound = null;
+        hitmarkerUI = null;
     }
 }
